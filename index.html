@@ -2,9 +2,11 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>خدمات ,طرق  الرياض</title>
+    <title>خدمات--طرق- الرياض</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+    <!-- مكتبة Routing : بنستخدمها عشان نرسم أقصر طريق على الطرق الحقيقية مش خط مستقيم -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
     <!-- مكتبة Turf : بنستخدمها في التحليل المكاني زي Buffer والمساحة والطول -->
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <style>
@@ -12,30 +14,30 @@
       body { margin: 0; font-family: sans-serif; }
       /* صندوق الأدوات اللي على اليمين */
       .panel {
-        background: white;
-        padding: 12px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        width: 210px;
-        direction: rtl;
-        text-align: right;
+        background: white; padding: 12px; border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2); width: 230px;
+        direction: rtl; text-align: right;
+        max-height: 90vh; overflow-y: auto;
       }
       .panel h3 { margin: 0 0 8px 0; font-size: 15px; }
       .panel input { width: 100%; padding: 6px; margin: 5px 0; box-sizing: border-box; }
       .panel button {
-        width: 100%; padding: 8px; margin-top: 6px;
-        cursor: pointer; border: none; border-radius: 6px;
-        background: #1976d2; color: white; font-weight: bold;
+        width: 100%; padding: 8px; margin-top: 6px; cursor: pointer;
+        border: none; border-radius: 6px; background: #1976d2; color: white; font-weight: bold;
       }
       .panel button.gray { background: #555; }
       .panel button.green { background: #2e7d32; }
+      .panel button.orange { background: #ef6c00; }
+      .panel button.purple { background: #7b1fa2; }
       .panel hr { margin: 12px 0; }
+      .result-box { background: #f5f5f5; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 13px; line-height: 1.6; }
     </style>
   </head>
   <body>
     <div id="map"></div>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
     <script>
       // ============ 1. إنشاء الخريطة ============
       // بنبدأ الخريطة على الرياض
@@ -52,20 +54,21 @@
       const bufferLayer = new L.FeatureGroup();
       map.addLayer(bufferLayer);
 
+      // طبقة منفصلة للمستشفيات عشان نقدر نتحكم فيها لوحدها
+      const hospitalsLayer = new L.FeatureGroup();
+      map.addLayer(hospitalsLayer);
+
       // بنحتفظ بآخر شكل اترسم، عشان نعمل عليه Buffer بعدين
       let lastDrawnLayer = null;
+      // بنحتفظ بآخر نقطة لوكيشن اختارها المستخدم، عشان نحسب منها أقرب خدمة
+      let lastLocationPoint = null;
+      // بنحتفظ بمسار الـ Routing عشان نقدر نمسحه لما نعمل مسار جديد
+      let routingControl = null;
 
       // ============ 3. أداة الرسم (معزولة) ============
-      // أداة الرسم بس، ملهاش علاقة بالـ Buffer ولا باللوكيشن
       const drawControl = new L.Control.Draw({
         edit: { featureGroup: drawnItems },
-        draw: {
-          polygon: true,
-          polyline: true,
-          marker: true,
-          circle: false,
-          rectangle: true,
-        },
+        draw: { polygon: true, polyline: true, marker: true, circle: false, rectangle: true },
       });
       map.addControl(drawControl);
 
@@ -73,63 +76,39 @@
       map.on(L.Draw.Event.CREATED, function (e) {
         const layer = e.layer;
         drawnItems.addLayer(layer);
-        lastDrawnLayer = layer; // بنخزنه كـ "آخر شكل" عشان الـ Buffer يستخدمه
+        lastDrawnLayer = layer;
         const geo = layer.toGeoJSON();
-
-        // لو رسمت خط -> نحسب طوله بـ Turf
         if (e.layerType === "polyline") {
           const len = turf.length(geo, { units: "kilometers" });
           layer.bindPopup("طول الخط: " + len.toFixed(2) + " كم").openPopup();
         }
-
-        // لو رسمت مساحة -> نحسب مساحتها بـ Turf
         if (e.layerType === "polygon" || e.layerType === "rectangle") {
           const area = turf.area(geo);
           layer.bindPopup("المساحة: " + (area / 1000000).toFixed(2) + " كم²").openPopup();
         }
-
-        // لو رسمت نقطة -> بنعرض إحداثياتها بس، من غير Buffer تلقائي
         if (e.layerType === "marker") {
           const latlng = layer.getLatLng();
           layer.bindPopup("نقطة<br>Lat: " + latlng.lat.toFixed(5) + "<br>Lng: " + latlng.lng.toFixed(5)).openPopup();
+          // أي ماركر جديد بنعتبره نقطة انطلاق لحساب أقرب خدمة
+          lastLocationPoint = latlng;
         }
       });
 
       // ============ 5. أداة Buffer (معزولة تماما) ============
-      // دي دالة بتعمل Buffer لأي شكل (نقطة / خط / مساحة) بالمسافة اللي المستخدم يدخلها
       function doBuffer() {
-        // لو مفيش شكل مرسوم، ننبه المستخدم
-        if (!lastDrawnLayer) {
-          alert("ارسم نقطة أو خط أو مساحة الأول");
-          return;
-        }
-        // بنجيب المسافة من الـ Input، ولو فاضية بنخليها 500 متر
+        if (!lastDrawnLayer) { alert("ارسم نقطة أو خط أو مساحة الأول"); return; }
         let dist = parseFloat(document.getElementById("bufferDist").value);
         if (!dist || dist <= 0) dist = 500;
-
-        // بنحول المسافة من متر لـ كيلومتر لأن Turf بيشتغل بالكيلومتر
         const distKm = dist / 1000;
-
-        // بنحول الشكل لـ GeoJSON عشان Turf يفهمه
         const geo = lastDrawnLayer.toGeoJSON();
-
-        // بنعمل Buffer
         const buf = turf.buffer(geo, distKm, { units: "kilometers" });
-
-        // بنرسم الـ Buffer بلون أحمر شفاف في طبقة لوحدها
         L.geoJSON(buf, { style: { color: "red", fillOpacity: 0.2, weight: 2 } }).addTo(bufferLayer);
         alert("اتعمل Buffer بمسافة " + dist + " متر");
       }
-
-      // دالة لمسح الـ Buffers بس من غير ما نمسح الرسم
-      function clearBuffer() {
-        bufferLayer.clearLayers();
-      }
+      function clearBuffer() { bufferLayer.clearLayers(); }
 
       // ============ 6. أداة اللوكيشن (معزولة) ============
-      // متغير عشان نعرف هل أداة اللوكيشن شغالة ولا لأ
       let locationMode = false;
-
       function toggleLocationMode() {
         locationMode = !locationMode;
         const btn = document.getElementById("locBtn");
@@ -143,30 +122,133 @@
           map.getContainer().style.cursor = "";
         }
       }
-
-      // لما المستخدم يضغط على الخريطة وأداة اللوكيشن شغالة، بنحط ماركر
       map.on("click", function (e) {
         if (!locationMode) return;
         const marker = L.marker(e.latlng).addTo(drawnItems);
-        marker.bindPopup(
-          "📍 لوكيشن جديد<br>Lat: " + e.latlng.lat.toFixed(5) +
-          "<br>Lng: " + e.latlng.lng.toFixed(5)
-        ).openPopup();
-        lastDrawnLayer = marker; // بنخليه آخر شكل عشان تقدر تعمل عليه Buffer
+        marker.bindPopup("📍 لوكيشن جديد<br>Lat: " + e.latlng.lat.toFixed(5) + "<br>Lng: " + e.latlng.lng.toFixed(5)).openPopup();
+        lastDrawnLayer = marker;
+        // بنخزن النقطة دي كآخر لوكيشن عشان نستخدمها في أقرب خدمة وأقصر طريق
+        lastLocationPoint = e.latlng;
       });
 
       // ============ 7. زرار "مكاني" (GPS) ============
-      // ده غير أداة اللوكيشن، ده بيجيب مكانك الحقيقي بالـ GPS
-      function goToMyLocation() {
-        map.locate({ setView: true, maxZoom: 15 });
-      }
+      function goToMyLocation() { map.locate({ setView: true, maxZoom: 15 }); }
       map.on("locationfound", function (e) {
         L.marker(e.latlng).addTo(map).bindPopup("انت هنا").openPopup();
         L.circle(e.latlng, { radius: e.accuracy }).addTo(map);
+        // مكانك الحقيقي برضه بنعتبره نقطة انطلاق
+        lastLocationPoint = e.latlng;
+        lastDrawnLayer = L.marker(e.latlng);
       });
 
+      // ============ 9. NEW: داتا المستشفيات في الرياض ============
+      // دي داتا حقيقية - إحداثيات 6 مستشفيات مشهورة في الرياض
+      // كل مستشفى: اسم + Lat + Lng
+      // بعد كده تقدر تضيف مدارس / مساجد بنفس الطريقة
+      const hospitals = [
+        { name: "مستشفى الملك فيصل التخصصي", lat: 24.6867, lng: 46.6865 },
+        { name: "مستشفى الملك سعود الجامعي", lat: 24.7225, lng: 46.6858 },
+        { name: "مدينة الملك فهد الطبية", lat: 24.6872, lng: 46.7095 },
+        { name: "مستشفى الحبيب - الريان", lat: 24.7261, lng: 46.7808 },
+        { name: "مستشفى د. سليمان الحبيب - العليا", lat: 24.7050, lng: 46.6800 },
+        { name: "مستشفى المملكة", lat: 24.7345, lng: 46.6580 },
+      ];
+
+      // بنرسم المستشفيات على الخريطة بأيقونة 🏥
+      hospitals.forEach(function(h) {
+        // بنعمل أيقونة مخصوصة على شكل مستشفى
+        const hospIcon = L.divIcon({ html: "🏥", className: "", iconSize: [28, 28] });
+        const m = L.marker([h.lat, h.lng], { icon: hospIcon }).addTo(hospitalsLayer);
+        m.bindPopup("<b>" + h.name + "</b>");
+        // بنخزن إحداثيات المستشفى جواه عشان نستخدمها في الحسابات
+        m.hospitalData = h;
+      });
+
+      // ============ 10. NEW: أقرب 3 خدمات ليك ============
+      // الفكرة: بناخد نقطة المستخدم، ونحسب المسافة لكل مستشفى بـ Turf، ونرتبهم من الأقرب للأبعد
+      function findNearest() {
+        // لو المستخدم محطش نقطة لسه، ننبهه
+        if (!lastLocationPoint) { alert("حط لوكيشن الأول: دوس على أداة اللوكيشن واضغط على الخريطة، أو دوس مكاني"); return; }
+
+        // بنحول نقطة المستخدم لـ GeoJSON عشان Turf يفهمها
+        const fromPoint = turf.point([lastLocationPoint.lng, lastLocationPoint.lat]);
+
+        // بنحسب المسافة لكل مستشفى
+        const withDist = hospitals.map(function(h) {
+          const toPoint = turf.point([h.lng, h.lat]);
+          // turf.distance بتحسب المسافة بخط مستقيم بالكيلومتر
+          const distKm = turf.distance(fromPoint, toPoint, { units: "kilometers" });
+          return { name: h.name, lat: h.lat, lng: h.lng, dist: distKm };
+        });
+
+        // بنرتبهم من الأقرب للأبعد
+        withDist.sort(function(a, b) { return a.dist - b.dist; });
+
+        // بناخد أول 3 بس
+        const nearest3 = withDist.slice(0, 3);
+
+        // بنعرض النتيجة في صندوق النتايج تحت
+        const box = document.getElementById("nearestResult");
+        let html = "<b>🏥 أقرب 3 مستشفيات ليك:</b><br>";
+        nearest3.forEach(function(item, i) {
+          html += (i+1) + ". " + item.name + " - " + item.dist.toFixed(2) + " كم<br>";
+        });
+        box.innerHTML = html;
+        box.style.display = "block";
+
+        // بنفتح Popup على أقرب واحد
+        L.popup().setLatLng([nearest3[0].lat, nearest3[0].lng]).setContent("أقرب مستشفى ليك:<br><b>" + nearest3[0].name + "</b><br>المسافة: " + nearest3[0].dist.toFixed(2) + " كم").openOn(map);
+
+        // بنخزن أقرب مستشفى عشان زرار أقصر طريق يستخدمه
+        window.nearestHospital = nearest3[0];
+      }
+
+      // ============ 11. NEW: أقصر طريق على الطرق الحقيقية ============
+      // الفكرة: بنستخدم OSRM - خدمة مجانية بتحسب الطريق على الشوارع الحقيقية مش خط مستقيم
+      function showRoute() {
+        if (!lastLocationPoint) { alert("حط لوكيشن الأول"); return; }
+        if (!window.nearestHospital) { alert("دوس الأول على زرار أقرب خدمة عشان نعرف هنروح لفين"); return; }
+
+        // لو فيه مسار قديم، بنمسحه الأول عشان الخريطة متتلخبطش
+        if (routingControl) { map.removeControl(routingControl); }
+
+        // بنعمل Routing Control جديد
+        routingControl = L.Routing.control({
+          // نقطة البداية = مكانك، نقطة النهاية = أقرب مستشفى
+          waypoints: [
+            L.latLng(lastLocationPoint.lat, lastLocationPoint.lng),
+            L.latLng(window.nearestHospital.lat, window.nearestHospital.lng)
+          ],
+          // بنستخدم OSRM المجاني
+          router: L.Routing.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1" }),
+          // بنخفي تعليمات الطريق النصية عشان الخريطة تبقى نضيفة، و بنسيب الخط بس
+          show: false,
+          addWaypoints: false,
+          draggableWaypoints: false,
+          fitSelectedRoutes: true,
+          lineOptions: { styles: [{ color: "#1976d2", weight: 5, opacity: 0.8 }] },
+          createMarker: function(i, wp) {
+            // بنخفي الماركرز الافتراضية بتاعة الـ Routing عشان عندنا ماركرزنا
+            return null;
+          }
+        }).addTo(map);
+
+        // لما الطريق يتحسب، بنعرض المسافة والوقت في الـ Popup
+        routingControl.on("routesfound", function(e) {
+          const route = e.routes[0];
+          const distKm = (route.summary.totalDistance / 1000).toFixed(2);
+          const timeMin = Math.round(route.summary.totalTime / 60);
+          alert("أقصر طريق لأقرب مستشفى:\n" + window.nearestHospital.name + "\nالمسافة على الطريق: " + distKm + " كم\nالوقت المتوقع: " + timeMin + " دقيقة");
+        });
+      }
+
+      function clearRoute() {
+        if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+        const box = document.getElementById("nearestResult");
+        if (box) box.style.display = "none";
+      }
+
       // ============ 8. صندوق الأدوات اللي على اليمين ============
-      // بنعمل Control مخصوص في Leaflet عشان نحط فيه أدواتنا
       const panel = L.control({ position: "topright" });
       panel.onAdd = function () {
         const div = L.DomUtil.create("div", "panel");
@@ -180,8 +262,13 @@
           <h3>📍 أداة اللوكيشن</h3>
           <button id="locBtn" class="green" onclick="toggleLocationMode()">📍 أداة اللوكيشن - اضغط على الخريطة</button>
           <button onclick="goToMyLocation()">🧭 مكاني (GPS)</button>
+          <hr>
+          <h3>🏥 خدمات قريبة</h3>
+          <button class="orange" onclick="findNearest()">🏥 أقرب 3 مستشفيات</button>
+          <div id="nearestResult" class="result-box" style="display:none"></div>
+          <button class="purple" onclick="showRoute()">🛣️ أقصر طريق لأقرب مستشفى</button>
+          <button class="gray" onclick="clearRoute()">مسح الطريق</button>
         `;
-        // بنمنع الخريطة انها تتحرك لما تدوس جوه الصندوق
         L.DomEvent.disableClickPropagation(div);
         return div;
       };
@@ -192,6 +279,9 @@
       window.clearBuffer = clearBuffer;
       window.toggleLocationMode = toggleLocationMode;
       window.goToMyLocation = goToMyLocation;
+      window.findNearest = findNearest;
+      window.showRoute = showRoute;
+      window.clearRoute = clearRoute;
     </script>
   </body>
 </html>
