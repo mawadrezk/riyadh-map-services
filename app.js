@@ -179,6 +179,7 @@ document.getElementById("bufferBtn").addEventListener("click", () => {
   createBuffer(state.lastDrawn.toGeoJSON(), meters / 1000).addTo(layers.buffer);
 });
 
+
 // ===== 10. اللوكيشن =====
 document.getElementById("locationBtn").addEventListener("click", () => {
   state.locationMode = !state.locationMode;
@@ -252,12 +253,22 @@ document.getElementById("routeBtn").addEventListener("click", () => {
 // ===== 12. التغطية + التصدير + مسح الكل =====
 document.getElementById("coverageBtn").addEventListener("click", () => {
   layers.coverage.clearLayers();
-  // لو العدد كبير، نعمل Coverage لأول 150 بس عشان الجهاز ميتقلش
-  getFiltered()
-    .slice(0, 150)
-    .forEach((s) =>
-      createBuffer(toPoint(s.lat, s.lng), 2, "#00897b").addTo(layers.coverage),
-    );
+  
+  // لو مفيش رسم، نبهه
+  if (!state.lastDrawn) return alert("ارسم نقطة أو خط أو مساحة الأول");
+
+  // نجيب المسافة من نفس خانة الـ Buffer اللي فوق
+  const meters = parseFloat(document.getElementById("bufferDist").value) || 500;
+
+  // نعمل تغطية حوالين الشكل المرسوم بس، مش حوالين الخدمات
+  createBuffer(state.lastDrawn.toGeoJSON(), meters / 1000, "#00897b").addTo(layers.coverage);
+
+  // لو راسم أكتر من شكل، نعمل تغطية لكل الأشكال المرسومة
+  layers.drawn.eachLayer((layer) => {
+    if (layer !== state.lastDrawn) {
+      createBuffer(layer.toGeoJSON(), meters / 1000, "#00897b").addTo(layers.coverage);
+    }
+  });
 });
 
 document.getElementById("exportBtn").addEventListener("click", () => {
