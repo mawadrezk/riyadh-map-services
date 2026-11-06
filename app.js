@@ -110,9 +110,7 @@ function renderServices() {
     }).bindPopup(`<b>${s.icon} ${s.label}</b><br>${s.name}<br><a href="https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=driving" target="_blank" style="display:block; background:#1a73e8; color:white; text-align:center; padding:8px; border-radius:8px; margin-top:8px; text-decoration:none;">🧭 توجه زي جوجل ماب</a>`);
     clusterGroup.addLayer(m);
   });
-  document.getElementById("serviceCount").textContent =
-    `عدد الخدمات المعروضة: ${list.length}`;
-}
+
   document.getElementById("serviceCount").textContent =
     `عدد الخدمات المعروضة: ${list.length}`;
 }
