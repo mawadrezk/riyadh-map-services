@@ -24,6 +24,17 @@ body { margin: 0; font-family: Tahoma, sans-serif; }
 
 @media (max-width: 768px) {
   #menuBtn { display: block; }
-  .panel { display: none; width: 86vw; }
+
+  .panel {
+    display: none;
+    width: 82vw !important;
+    max-width: 300px !important;
+    max-height: 85vh !important;
+    top: 10px;
+    right: 10px;
+    left: auto;
+    padding: 10px !important;
+  }
+
   .panel.open { display: block; }
 }
