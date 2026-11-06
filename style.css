@@ -27,13 +27,15 @@ body { margin: 0; font-family: Tahoma, sans-serif; }
 
   .panel {
     display: none;
-    width: 82vw !important;
-    max-width: 300px !important;
-    max-height: 85vh !important;
+    width: 33vw !important;
+    min-width: 190px !important;
+    max-width: 260px !important;
+    max-height: 88vh !important;
     top: 10px;
     right: 10px;
     left: auto;
-    padding: 10px !important;
+    padding: 8px !important;
+    font-size: 12px;
   }
 
   .panel.open { display: block; }
