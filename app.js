@@ -111,9 +111,7 @@ function renderServices() {
     clusterGroup.addLayer(m);
   });
 
-  document.getElementById("serviceCount").textContent =
-    `عدد الخدمات المعروضة: ${list.length}`;
-}
+
 document
   .getElementById("serviceType")
   .addEventListener("change", renderServices);
