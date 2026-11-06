@@ -23,7 +23,13 @@ body { margin: 0; font-family: Tahoma, sans-serif; }
 #nearestResult, #routeResult { font-size: 13px; margin: 6px 0; line-height: 1.7; }
 
 @media (max-width: 600px) {
-  #menuBtn { display: block; }
+  #menuBtn {
+    display: block !important;
+    left: auto !important;
+    right: 12px !important;
+    top: 12px;
+    z-index: 2000 !important;
+  }
 
   .panel {
     display: none;
@@ -31,12 +37,15 @@ body { margin: 0; font-family: Tahoma, sans-serif; }
     min-width: 190px !important;
     max-width: 260px !important;
     max-height: 88vh !important;
-    top: 10px;
+    top: 60px; /* نزلناها تحت الزرار عشان متغطيش عليه */
     right: 10px;
     left: auto;
     padding: 8px !important;
     font-size: 12px;
   }
+
+  .panel.open { display: block; }
+}
 
   .panel.open { display: block; }
 }
