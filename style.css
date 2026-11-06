@@ -1,0 +1,29 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Tahoma, sans-serif; }
+#map { height: 100vh; width: 100%; }
+
+.panel {
+  position: fixed; top: 10px; right: 10px; z-index: 1000;
+  width: 280px; max-height: 92vh; overflow-y: auto;
+  background: #fff; padding: 14px; border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
+}
+.panel h3 { margin: 0 0 10px; text-align: center; }
+.panel label { display: block; font-weight: bold; margin: 8px 0 4px; font-size: 13px; }
+.panel input, .panel select { width: 100%; padding: 9px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 6px; }
+.panel button { width: 100%; padding: 10px; margin: 4px 0; border: none; border-radius: 8px; background: #1976d2; color: #fff; cursor: pointer; font-weight: bold; }
+.panel button:hover { background: #0d47a1; }
+.panel .danger { background: #d32f2f; }
+.panel .danger:hover { background: #b71c1c; }
+
+#menuBtn { display: none; position: fixed; top: 12px; left: 12px; z-index: 2000; width: 48px; height: 48px; font-size: 22px; border: none; border-radius: 10px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.2); cursor: pointer; }
+#searchResults div { padding: 8px; cursor: pointer; border-bottom: 1px solid #eee; }
+#searchResults div:hover { background: #f5f5f5; }
+#loading { background: #fff3cd; padding: 8px; border-radius: 8px; font-size: 13px; text-align: center; }
+#nearestResult, #routeResult { font-size: 13px; margin: 6px 0; line-height: 1.7; }
+
+@media (max-width: 768px) {
+  #menuBtn { display: block; }
+  .panel { display: none; width: 86vw; }
+  .panel.open { display: block; }
+}
