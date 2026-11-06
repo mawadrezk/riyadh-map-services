@@ -22,7 +22,7 @@ body { margin: 0; font-family: Tahoma, sans-serif; }
 #loading { background: #fff3cd; padding: 8px; border-radius: 8px; font-size: 13px; text-align: center; }
 #nearestResult, #routeResult { font-size: 13px; margin: 6px 0; line-height: 1.7; }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
   #menuBtn { display: block; }
 
   .panel {
