@@ -1,427 +1,77 @@
 <!doctype html>
-<html>
+<html lang="ar" dir="rtl">
   <head>
-    <meta charset="utf-8" />
-    <!-- مهم جدا للموبايل - بيخلي الموقع ياخد عرض الموبايل الحقيقي -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>خدمات--طرق- الرياض</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
-    <!-- مكتبة Routing : عشان نرسم أقصر طريق على الطرق الحقيقية -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
-    <!-- مكتبة Turf : للتحليل المكاني زي Buffer والمسافة والمساحة -->
-    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-    <style>
-      /* ============ أساسيات ============ */
-      #map { height: 100vh; width: 100%; touch-action: none; }
-      body { margin: 0; font-family: sans-serif; overscroll-behavior: none; }
-
-      /* ============ صندوق الأدوات - للكمبيوتر ============ */
-      .panel {
-        background: white; padding: 12px; border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2); width: 245px;
-        direction: rtl; text-align: right; max-height: 90vh; overflow-y: auto;
-      }
-      .panel h3 { margin: 0 0 8px 0; font-size: 15px; }
-      .panel input, .panel select {
-        width: 100%; padding: 6px; margin: 5px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px;
-      }
-      .panel button {
-        width: 100%; padding: 8px; margin-top: 6px; cursor: pointer;
-        border: none; border-radius: 6px; background: #1976d2; color: white; font-weight: bold;
-      }
-      .panel button.gray { background: #555; }
-      .panel button.green { background: #2e7d32; }
-      .panel button.orange { background: #ef6c00; }
-      .panel button.purple { background: #7b1fa2; }
-      .panel button.teal { background: #00897b; }
-      .panel button.dark { background: #37474f; }
-      .panel hr { margin: 12px 0; }
-      .result-box { background: #f5f5f5; padding: 8px; border-radius: 6px; margin-top: 8px; font-size: 13px; line-height: 1.6; }
-      .search-result-item { background: #fff; border: 1px solid #ddd; padding: 7px; border-radius: 6px; margin-top: 5px; cursor: pointer; font-size: 13px; }
-      .search-result-item:hover { background: #e3f2fd; }
-
-      /* ============ زرار القايمة ☰ - بيظهر على الموبايل بس ============ */
-      #menuBtn {
-        display: none; position: fixed; top: 12px; right: 12px; z-index: 1000;
-        background: #1976d2; color: white; border: none; border-radius: 10px;
-        padding: 14px 18px; font-size: 26px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-      }
-
-      /* ============ تظبيط الموبايل ============ */
-      @media (max-width: 768px) {
-        #menuBtn { display: block; }
-        .panel { width: 265px !important; max-height: 82vh; padding: 16px; }
-        .panel h3 { font-size: 18px; }
-        .panel button { padding: 13px 8px; font-size: 15px; }
-        .panel input, .panel select { padding: 10px; font-size: 15px; }
-        .result-box { font-size: 15px; }
-        .panel.hidden-mobile { display: none; }
-        /* تكبير أدوات الرسم على الموبايل - من 30px لـ 54px */
-        .leaflet-draw-toolbar a, .leaflet-draw-toolbar a:hover {
-          width: 54px !important; height: 54px !important; line-height: 54px !important; background-size: 270px 54px !important;
-        }
-        .leaflet-control-zoom a { width: 44px !important; height: 44px !important; line-height: 44px !important; font-size: 24px !important; }
-        .leaflet-draw-actions a { font-size: 14px !important; padding: 8px 10px !important; }
-        .leaflet-popup-content { font-size: 15px; line-height: 1.6; min-width: 180px; }
-        .leaflet-routing-container { display: none; }
-      }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>خدمات الرياض - داتا حقيقية</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+    />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- زرار بيفتح ويقفل صندوق الأدوات على الموبايل -->
-    <button id="menuBtn" onclick="togglePanel()">☰</button>
+    <button id="menuBtn">☰</button>
     <div id="map"></div>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
-    <script>
-      // ============ 1. إنشاء الخريطة ============
-      const map = L.map("map").setView([24.7136, 46.6753], 11);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
-      // ============ 2. الطبقات ============
-      const drawnItems = new L.FeatureGroup(); map.addLayer(drawnItems);
-      const bufferLayer = new L.FeatureGroup(); map.addLayer(bufferLayer);
-      const servicesLayer = new L.FeatureGroup(); map.addLayer(servicesLayer);
-      const coverageLayer = new L.FeatureGroup(); map.addLayer(coverageLayer);
+    <div id="panel" class="panel">
+      <h3>🗺️ خدمات الرياض</h3>
+      <p id="loading">جاري تحميل الداتا الحقيقية...</p>
 
-      let lastDrawnLayer = null;
-      let lastLocationPoint = null;
-      let routingControl = null;
+      <label>نوع الخدمة</label>
+      <select id="serviceType">
+        <option value="all">الكل</option>
+        <option value="hospital">🏥 مستشفيات</option>
+        <option value="school">🏫 مدارس</option>
+        <option value="pharmacy">💊 صيدليات</option>
+        <option value="mosque">🕌 مساجد</option>
+      </select>
 
-      // ============ 3. أداة الرسم ============
-      const drawControl = new L.Control.Draw({
-        edit: { featureGroup: drawnItems },
-        draw: { polygon: true, polyline: true, marker: true, circle: false, rectangle: true },
-      });
-      map.addControl(drawControl);
+      <label>بحث بالاسم</label>
+      <input id="searchInput" placeholder="اكتب مثلا: الحبيب / الدواء" />
+      <div id="searchResults"></div>
+      <p id="serviceCount"></p>
 
-      map.on(L.Draw.Event.CREATED, function (e) {
-        const layer = e.layer;
-        drawnItems.addLayer(layer);
-        lastDrawnLayer = layer;
-        const geo = layer.toGeoJSON();
-        if (e.layerType === "polyline") {
-          const len = turf.length(geo, { units: "kilometers" });
-          layer.bindPopup("طول الخط: " + len.toFixed(2) + " كم").openPopup();
-        }
-        if (e.layerType === "polygon" || e.layerType === "rectangle") {
-          const area = turf.area(geo);
-          layer.bindPopup("المساحة: " + (area / 1000000).toFixed(2) + " كم²").openPopup();
-        }
-        if (e.layerType === "marker") {
-          const latlng = layer.getLatLng();
-          layer.bindPopup("نقطة<br>Lat: " + latlng.lat.toFixed(5) + "<br>Lng: " + latlng.lng.toFixed(5)).openPopup();
-          lastLocationPoint = latlng;
-        }
-      });
+      <hr />
+      <label>مسافة Buffer بالمتر</label>
+      <input id="bufferDist" type="number" value="500" />
+      <button id="bufferBtn">عمل Buffer لآخر شكل</button>
 
-      // ============ 4. Buffer ============
-      function doBuffer() {
-        if (!lastDrawnLayer) { alert("ارسم نقطة أو خط أو مساحة الأول"); return; }
-        let dist = parseFloat(document.getElementById("bufferDist").value);
-        if (!dist || dist <= 0) dist = 500;
-        const buf = turf.buffer(lastDrawnLayer.toGeoJSON(), dist / 1000, { units: "kilometers" });
-        L.geoJSON(buf, { style: { color: "red", fillOpacity: 0.2, weight: 2 } }).addTo(bufferLayer);
-        alert("اتعمل Buffer بمسافة " + dist + " متر");
-      }
-      function clearBuffer() { bufferLayer.clearLayers(); }
+      <hr />
+      <button id="locationBtn">📍 حط لوكيشن على الخريطة</button>
+      <button id="gpsBtn">📌 مكاني الحالي GPS</button>
+      <button id="nearestBtn">🎯 أقرب 3 خدمات</button>
+      <button id="routeBtn">🛣️ أقصر طريق</button>
+      <div id="nearestResult"></div>
+      <div id="routeResult"></div>
 
-      // ============ 5. اللوكيشن ============
-      let locationMode = false;
-      function toggleLocationMode() {
-        locationMode = !locationMode;
-        const btn = document.getElementById("locBtn");
-        if (locationMode) {
-          btn.innerText = "📍 اضغط على الخريطة لوضع لوكيشن... (اضغط للإلغاء)";
-          btn.style.background = "#c62828";
-          map.getContainer().style.cursor = "crosshair";
-        } else {
-          btn.innerText = "📍 أداة اللوكيشن - اضغط على الخريطة";
-          btn.style.background = "#2e7d32";
-          map.getContainer().style.cursor = "";
-        }
-      }
-      map.on("click", function (e) {
-        if (!locationMode) return;
-        const marker = L.marker(e.latlng).addTo(drawnItems);
-        marker.bindPopup("📍 لوكيشن جديد<br>Lat: " + e.latlng.lat.toFixed(5) + "<br>Lng: " + e.latlng.lng.toFixed(5)).openPopup();
-        lastDrawnLayer = marker;
-        lastLocationPoint = e.latlng;
-      });
-      function goToMyLocation() { map.locate({ setView: true, maxZoom: 15 }); }
-      map.on("locationfound", function (e) {
-        L.marker(e.latlng).addTo(map).bindPopup("انت هنا").openPopup();
-        L.circle(e.latlng, { radius: e.accuracy }).addTo(map);
-        lastLocationPoint = e.latlng;
-        lastDrawnLayer = L.marker(e.latlng);
-      });
+      <hr />
+      <button id="coverageBtn">🟢 عرض التغطية</button>
+      <button id="exportBtn">⬇️ تصدير أقرب 3 Excel</button>
+      <button id="clearBtn" class="danger">🗑️ مسح الكل</button>
+    </div>
 
-      // ============ 6. NEW: داتا كل الخدمات - مستشفيات + مدارس + مساجد + صيدليات ============
-      // الفكرة: كل خدمة ليها اسم، نوع، إحداثيات، وأيقونة. لما نغير الفلتر بنعرض النوع اللي اخترناه بس.
-      // ملحوظة للمذاكرة: دي داتا تجريبية لعرض الفكرة، في مشروع حقيقي بنجيبها من OpenStreetMap أو من أمانة الرياض.
-      const allServices = [
-        // --- مستشفيات ---
-        { name: "مستشفى الملك فيصل التخصصي", type: "hospital", icon: "🏥", lat: 24.6867, lng: 46.6865 },
-        { name: "مستشفى الملك سعود الجامعي", type: "hospital", icon: "🏥", lat: 24.7225, lng: 46.6858 },
-        { name: "مدينة الملك فهد الطبية", type: "hospital", icon: "🏥", lat: 24.6872, lng: 46.7095 },
-        { name: "مستشفى الحبيب - الريان", type: "hospital", icon: "🏥", lat: 24.7261, lng: 46.7808 },
-        { name: "مستشفى د. سليمان الحبيب - العليا", type: "hospital", icon: "🏥", lat: 24.7050, lng: 46.6800 },
-        { name: "مستشفى المملكة", type: "hospital", icon: "🏥", lat: 24.7345, lng: 46.6580 },
-        // --- مدارس ---
-        { name: "مدارس الرياض - العليا", type: "school", icon: "🏫", lat: 24.7055, lng: 46.6750 },
-        { name: "مدارس التربية النموذجية - النزهة", type: "school", icon: "🏫", lat: 24.7480, lng: 46.7200 },
-        { name: "مدارس دار العلوم - المربع", type: "school", icon: "🏫", lat: 24.6800, lng: 46.7000 },
-        { name: "مدارس المملكة - العليا", type: "school", icon: "🏫", lat: 24.7300, lng: 46.6600 },
-        // --- مساجد ---
-        { name: "جامع الملك خالد - أم الحمام", type: "mosque", icon: "🕌", lat: 24.7000, lng: 46.6500 },
-        { name: "جامع الراجحي - الجزيرة", type: "mosque", icon: "🕌", lat: 24.6805, lng: 46.7300 },
-        { name: "جامع الملك عبدالله - العليا", type: "mosque", icon: "🕌", lat: 24.7100, lng: 46.6800 },
-        { name: "جامع الإمام تركي - الديرة", type: "mosque", icon: "🕌", lat: 24.6300, lng: 46.7100 },
-        // --- صيدليات ---
-        { name: "صيدلية النهدي - العليا", type: "pharmacy", icon: "💊", lat: 24.7120, lng: 46.6740 },
-        { name: "صيدلية الدواء - النرجس", type: "pharmacy", icon: "💊", lat: 24.7600, lng: 46.6900 },
-        { name: "صيدلية وايتس - الريان", type: "pharmacy", icon: "💊", lat: 24.7200, lng: 46.7700 },
-        { name: "صيدلية النهدي - المربع", type: "pharmacy", icon: "💊", lat: 24.6750, lng: 46.7050 },
-      ];
-
-      // NEW: دي اللي بنخزن فيها آخر 3 خدمات لقيناهم، عشان نستخدمهم في التصدير والطريق
-      let lastNearestList = [];
-
-      // NEW: دالة بترسم الخدمات على الخريطة حسب الفلتر اللي اخترته
-      // لو اخترت "الكل" بيرسم كل حاجة، لو اخترت "مستشفيات" بيرسم المستشفيات بس
-      function renderServices() {
-        servicesLayer.clearLayers();
-        const filter = document.getElementById("serviceType").value;
-        const filtered = allServices.filter(function(s) { return filter === "all" || s.type === filter; });
-        filtered.forEach(function(s) {
-          const icon = L.divIcon({ html: s.icon, className: "", iconSize: [28, 28] });
-          const m = L.marker([s.lat, s.lng], { icon: icon }).addTo(servicesLayer);
-          m.bindPopup("<b>" + s.icon + " " + s.name + "</b><br>النوع: " + getTypeName(s.type));
-          m.serviceData = s;
-        });
-        // بنحدث عداد الخدمات اللي تحت الفلتر
-        const countEl = document.getElementById("serviceCount");
-        if (countEl) countEl.innerText = "عدد الخدمات المعروضة: " + filtered.length;
-      }
-      function getTypeName(type) {
-        if (type === "hospital") return "مستشفى";
-        if (type === "school") return "مدرسة";
-        if (type === "mosque") return "مسجد";
-        if (type === "pharmacy") return "صيدلية";
-        return type;
-      }
-
-      // ============ 7. NEW: البحث بالاسم ============
-      // الفكرة: بنكتب جزء من الاسم، بندور في كل الخدمات، ونعرض اللي اسمه فيه الكلمة دي
-      function searchServices() {
-        const q = document.getElementById("searchInput").value.trim();
-        const box = document.getElementById("searchResults");
-        if (!q) { box.innerHTML = ""; return; }
-        const results = allServices.filter(function(s) { return s.name.includes(q); });
-        if (results.length === 0) { box.innerHTML = "<div class='search-result-item'>مفيش نتيجة مطابقة</div>"; return; }
-        let html = "";
-        results.forEach(function(s) {
-          // بنحط الاسم في الـ onclick عشان لما تدوس عليه يروح للمكان ده
-          html += "<div class='search-result-item' onclick=\"goToService('" + s.name + "')\">" + s.icon + " " + s.name + " - " + getTypeName(s.type) + "</div>";
-        });
-        box.innerHTML = html;
-      }
-      function goToService(name) {
-        const s = allServices.find(function(x) { return x.name === name; });
-        if (!s) return;
-        map.setView([s.lat, s.lng], 15);
-        L.popup().setLatLng([s.lat, s.lng]).setContent("<b>" + s.icon + " " + s.name + "</b><br>" + getTypeName(s.type)).openOn(map);
-        // بنقفل الصندوق على الموبايل عشان تشوف المكان
-        if (window.innerWidth <= 768) {
-          const panelEl = document.querySelector('.panel');
-          if (panelEl) panelEl.classList.add('hidden-mobile');
-        }
-      }
-
-      // ============ 8. أقرب 3 خدمات - حسب النوع اللي اخترته ============
-      // الفكرة: بناخد نقطة المستخدم، ونحسب المسافة لكل خدمة من النوع المختار بـ Turf، ونرتب من الأقرب للأبعد
-      function findNearest() {
-        if (!lastLocationPoint) { alert("حط لوكيشن الأول: دوس على أداة اللوكيشن واضغط على الخريطة، أو دوس مكاني"); return; }
-        const filter = document.getElementById("serviceType").value;
-        // بنفلتر حسب النوع: لو الكل بناخد كل الخدمات، لو نوع معين بناخد النوع ده بس
-        let list = allServices.filter(function(s) { return filter === "all" || s.type === filter; });
-        const fromPoint = turf.point([lastLocationPoint.lng, lastLocationPoint.lat]);
-        const withDist = list.map(function(s) {
-          const distKm = turf.distance(fromPoint, turf.point([s.lng, s.lat]), { units: "kilometers" });
-          return { name: s.name, type: s.type, icon: s.icon, lat: s.lat, lng: s.lng, dist: distKm };
-        });
-        withDist.sort(function(a, b) { return a.dist - b.dist; });
-        const nearest3 = withDist.slice(0, 3);
-        lastNearestList = nearest3; // بنحفظها عشان التصدير والطريق
-        const box = document.getElementById("nearestResult");
-        let html = "<b>" + nearest3[0].icon + " أقرب 3 " + (filter === "all" ? "خدمات" : getTypeName(filter) + "ات") + " ليك:</b><br>";
-        nearest3.forEach(function(item, i) {
-          html += (i+1) + ". " + item.name + " - " + item.dist.toFixed(2) + " كم<br>";
-        });
-        box.innerHTML = html;
-        box.style.display = "block";
-        L.popup().setLatLng([nearest3[0].lat, nearest3[0].lng]).setContent("أقرب خدمة ليك:<br><b>" + nearest3[0].name + "</b><br>المسافة: " + nearest3[0].dist.toFixed(2) + " كم").openOn(map);
-        window.nearestService = nearest3[0];
-      }
-
-      // ============ 9. أقصر طريق ============
-      function showRoute() {
-        if (!lastLocationPoint) { alert("حط لوكيشن الأول"); return; }
-        if (!window.nearestService) { alert("دوس الأول على زرار أقرب خدمة عشان نعرف هنروح لفين"); return; }
-        if (routingControl) { map.removeControl(routingControl); }
-        routingControl = L.Routing.control({
-          waypoints: [ L.latLng(lastLocationPoint.lat, lastLocationPoint.lng), L.latLng(window.nearestService.lat, window.nearestService.lng) ],
-          router: L.Routing.osrmv1({ serviceUrl: "https://router.project-osrm.org/route/v1" }),
-          show: false, addWaypoints: false, draggableWaypoints: false, fitSelectedRoutes: true,
-          lineOptions: { styles: [{ color: "#1976d2", weight: 5, opacity: 0.8 }] },
-          createMarker: function(i, wp) { return null; }
-        }).addTo(map);
-        routingControl.on("routesfound", function(e) {
-          const route = e.routes[0];
-          const distKm = (route.summary.totalDistance / 1000).toFixed(2);
-          const timeMin = Math.round(route.summary.totalTime / 60);
-          alert("أقصر طريق لأقرب خدمة:\n" + window.nearestService.name + "\nالمسافة على الطريق: " + distKm + " كم\nالوقت المتوقع: " + timeMin + " دقيقة");
-        });
-      }
-      function clearRoute() {
-        if (routingControl) { map.removeControl(routingControl); routingControl = null; }
-        const box = document.getElementById("nearestResult");
-        if (box) box.style.display = "none";
-      }
-
-      // ============ 10. NEW: تحليل التغطية - Coverage ============
-      // الفكرة: بنعمل Buffer 2 كم حوالين كل خدمة من النوع المختار، والمنطقة اللي بره الـ Buffer دي تعتبر مش متغطية
-      // دي أهم حتة في المشروع لو هتشرحه لدكتور: بتوريه فين الفجوات في الخدمات
-      function showCoverage() {
-        coverageLayer.clearLayers();
-        const filter = document.getElementById("serviceType").value;
-        let list = allServices.filter(function(s) { return filter === "all" || s.type === filter; });
-        list.forEach(function(s) {
-          // Buffer 2 كم - يعني أي حد في الدايرة دي يقدر يوصل للخدمة في أقل من 5 دقايق بالعربية
-          const buf = turf.buffer(turf.point([s.lng, s.lat]), 2, { units: "kilometers" });
-          L.geoJSON(buf, { style: { color: "#00897b", fillColor: "#00897b", fillOpacity: 0.15, weight: 1.5 } }).addTo(coverageLayer);
-        });
-        alert("اتعرضت التغطية لـ " + list.length + " خدمة\nكل دايرة خضرا = نطاق تغطية 2 كم\nأي منطقة بره الدواير = منطقة غير مخدومة ومحتاجة خدمة جديدة");
-      }
-      function clearCoverage() { coverageLayer.clearLayers(); }
-
-      // ============ 11. NEW: التصدير - Excel و GeoJSON ============
-      // الفكرة: بنحول النتايج لملف CSV بيفتح في Excel، عشان تقدر تسلمها مع المشروع
-      function exportNearestCSV() {
-        if (!lastNearestList || lastNearestList.length === 0) { alert("دوس الأول على زرار أقرب خدمة عشان يبقى فيه نتايج نصدرها"); return; }
-        let csv = "الترتيب,الاسم,النوع,المسافة بالكم,خط العرض,خط الطول\n";
-        lastNearestList.forEach(function(item, i) {
-          csv += (i+1) + "," + item.name + "," + getTypeName(item.type) + "," + item.dist.toFixed(2) + "," + item.lat + "," + item.lng + "\n";
-        });
-        downloadFile(csv, "nearest-services.csv");
-      }
-      // بنصدر كل الخدمات اللي على الخريطة - مفيد لو عايز تسلم الداتا كلها
-      function exportAllCSV() {
-        let csv = "الاسم,النوع,خط العرض,خط الطول\n";
-        allServices.forEach(function(s) {
-          csv += s.name + "," + getTypeName(s.type) + "," + s.lat + "," + s.lng + "\n";
-        });
-        downloadFile(csv, "all-services-riyadh.csv");
-      }
-      // بنصدر اللي انت رسمته كـ GeoJSON - ده فورمات الـ GIS الرسمي
-      function exportDrawnGeoJSON() {
-        if (drawnItems.getLayers().length === 0) { alert("ارسم حاجة الأول عشان نصدرها"); return; }
-        const geo = drawnItems.toGeoJSON();
-        const str = JSON.stringify(geo, null, 2);
-        downloadFile(str, "my-drawings.geojson");
-      }
-      // دالة مساعدة: بتحول النص لملف وبتخلي المتصفح ينزله
-      function downloadFile(content, fileName) {
-        // بنضيف \uFEFF عشان العربي يبان صح في Excel
-        const blob = new Blob(["\uFEFF" + content], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = fileName;
-        link.click();
-      }
-
-      // ============ 12. فتح وقفل الصندوق على الموبايل ============
-      function togglePanel() {
-        const panelEl = document.querySelector('.panel');
-        panelEl.classList.toggle('hidden-mobile');
-      }
-      if (window.innerWidth <= 768) {
-        setTimeout(function() {
-          const panelEl = document.querySelector('.panel');
-          if (panelEl) panelEl.classList.add('hidden-mobile');
-        }, 500);
-      }
-
-      // ============ 13. صندوق الأدوات ============
-      const panel = L.control({ position: "topright" });
-      panel.onAdd = function () {
-        const div = L.DomUtil.create("div", "panel");
-        div.innerHTML = `
-          <h3>🛠️ أداة Buffer</h3>
-          <label>مسافة الـ Buffer بالمتر:</label>
-          <input id="bufferDist" type="number" value="500" placeholder="مثال: 500" />
-          <button onclick="doBuffer()">عمل Buffer لآخر شكل</button>
-          <button class="gray" onclick="clearBuffer()">مسح الـ Buffers بس</button>
-          <hr>
-          <h3>📍 أداة اللوكيشن</h3>
-          <button id="locBtn" class="green" onclick="toggleLocationMode()">📍 أداة اللوكيشن - اضغط على الخريطة</button>
-          <button onclick="goToMyLocation()">🧭 مكاني (GPS)</button>
-          <hr>
-          <h3>🔍 بحث بالاسم</h3>
-          <input id="searchInput" type="text" placeholder="مثال: الحبيب، الراجحي..." oninput="searchServices()" />
-          <div id="searchResults"></div>
-          <hr>
-          <h3>🏥 خدمات قريبة</h3>
-          <label>نوع الخدمة:</label>
-          <select id="serviceType" onchange="renderServices()">
-            <option value="all">الكل - مستشفيات + مدارس + مساجد + صيدليات</option>
-            <option value="hospital">🏥 مستشفيات بس</option>
-            <option value="school">🏫 مدارس بس</option>
-            <option value="mosque">🕌 مساجد بس</option>
-            <option value="pharmacy">💊 صيدليات بس</option>
-          </select>
-          <div id="serviceCount" class="result-box">عدد الخدمات المعروضة: 18</div>
-          <button class="orange" onclick="findNearest()">🏥 أقرب 3 خدمات</button>
-          <div id="nearestResult" class="result-box" style="display:none"></div>
-          <button class="purple" onclick="showRoute()">🛣️ أقصر طريق لأقرب خدمة</button>
-          <button class="gray" onclick="clearRoute()">مسح الطريق</button>
-          <hr>
-          <h3>🟢 تحليل التغطية - Coverage</h3>
-          <button class="teal" onclick="showCoverage()">🟢 عرض التغطية (2 كم)</button>
-          <button class="gray" onclick="clearCoverage()">مسح التغطية</button>
-          <hr>
-          <h3>📤 تصدير النتايج</h3>
-          <button class="dark" onclick="exportNearestCSV()">📊 تصدير أقرب 3 - Excel</button>
-          <button class="dark" onclick="exportAllCSV()">📋 تصدير كل الخدمات - Excel</button>
-          <button class="dark" onclick="exportDrawnGeoJSON()">🗺️ تصدير رسمي - GeoJSON</button>
-        `;
-        L.DomEvent.disableClickPropagation(div);
-        return div;
-      };
-      panel.addTo(map);
-
-      // بنرسم الخدمات أول ما الصفحة تفتح
-      renderServices();
-
-      // بنخلي الدوال متاحة للـ HTML
-      window.doBuffer = doBuffer;
-      window.clearBuffer = clearBuffer;
-      window.toggleLocationMode = toggleLocationMode;
-      window.goToMyLocation = goToMyLocation;
-      window.findNearest = findNearest;
-      window.showRoute = showRoute;
-      window.clearRoute = clearRoute;
-      window.togglePanel = togglePanel;
-      window.renderServices = renderServices;
-      window.searchServices = searchServices;
-      window.goToService = goToService;
-      window.showCoverage = showCoverage;
-      window.clearCoverage = clearCoverage;
-      window.exportNearestCSV = exportNearestCSV;
-      window.exportAllCSV = exportAllCSV;
-      window.exportDrawnGeoJSON = exportDrawnGeoJSON;
-    </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
