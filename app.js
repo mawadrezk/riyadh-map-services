@@ -271,18 +271,82 @@ document.getElementById("coverageBtn").addEventListener("click", () => {
   });
 });
 
+// تحويل من Lat/Lon لـ UTM WGS84 - الرياض في Zone 38N
+function latLngToUTM(lat, lng) {
+  const a = 6378137, e = 0.081819191, k0 = 0.9996;
+  const zone = Math.floor((lng + 180) / 6) + 1; // الرياض = 38
+  const lonOrigin = (zone - 1) * 6 - 180 + 3;
+  const latRad = lat * Math.PI / 180;
+  const lngRad = lng * Math.PI / 180;
+  const lonOriginRad = lonOrigin * Math.PI / 180;
+  const e1sq = e * e / (1 - e * e);
+  const N = a / Math.sqrt(1 - e * e * Math.sin(latRad) * Math.sin(latRad));
+  const T = Math.tan(latRad) * Math.tan(latRad);
+  const C = e1sq * Math.cos(latRad) * Math.cos(latRad);
+  const A = Math.cos(latRad) * (lngRad - lonOriginRad);
+  const M = a * ((1 - e*e/4 - 3*e**4/64 - 5*e**6/256) * latRad
+    - (3*e*e/8 + 3*e**4/32 + 45*e**6/1024) * Math.sin(2*latRad)
+    + (15*e**4/256 + 45*e**6/1024) * Math.sin(4*latRad)
+    - (35*e**6/3072) * Math.sin(6*latRad));
+  let easting = k0 * N * (A + (1-T+C) * A**3/6 + (5-18*T+T*T+72*C-58*e1sq) * A**5/120) + 500000;
+  let northing = k0 * (M + N * Math.tan(latRad) * (A*A/2 + (5-T+9*C+4*C*C) * A**4/24 + (61-58*T+T*T+600*C-330*e1sq) * A**6/720));
+  if (lat < 0) northing += 10000000;
+  return { easting: Math.round(easting), northing: Math.round(northing), zone: zone + "N" };
+}
 document.getElementById("exportBtn").addEventListener("click", () => {
-  if (!state.lastNearest.length) return alert("دوس أقرب 3 الأول");
-  let csv = "الترتيب,الاسم,النوع,المسافة بالكم\n";
-  state.lastNearest.forEach(
-    (s, i) => (csv += `${i + 1},${s.name},${s.label},${s.dist.toFixed(2)}\n`),
-  );
+  if (!layers.drawn.getLayers().length) return alert("مفيش رسم عشان نصدره، ارسم الأول");
+
+  let csv = "الاسم,نوع الرسم,خط العرض Lat,خط الطول Lon,UTM Easting متر,UTM Northing متر,UTM Zone,الطول بالكم,المساحة بالكم2,عدد النقط\n";
+  let count = { point: 0, line: 0, area: 0 };
+
+  layers.drawn.eachLayer((layer) => {
+    const geo = layer.toGeoJSON();
+    const geomType = geo.geometry.type;
+    let name = "", type = "", latCol = "", lonCol = "", eastingCol = "", northingCol = "", zoneCol = "38N", length = "", area = "", pointCount = "";
+
+    // دالة صغيرة بتجمع إحداثيات كل النقط بتاعة الشكل
+    const collect = (coordsList) => {
+      let lats = [], lons = [], eastings = [], northings = [];
+      coordsList.forEach(c => {
+        const [lng, lat] = c;
+        const utm = latLngToUTM(lat, lng);
+        lats.push(lat.toFixed(6)); lons.push(lng.toFixed(6));
+        eastings.push(utm.easting); northings.push(utm.northing);
+      });
+      return { lats: lats.join(" | "), lons: lons.join(" | "), eastings: eastings.join(" | "), northings: northings.join(" | ") };
+    };
+
+    if (geomType === "Point") {
+      count.point++; name = `نقطة ${count.point}`; type = "نقطة";
+      const r = collect([geo.geometry.coordinates]);
+      latCol = r.lats; lonCol = r.lons; eastingCol = r.eastings; northingCol = r.northings;
+      pointCount = 1;
+    } else if (geomType === "LineString") {
+      count.line++; name = `خط ${count.line}`; type = "خط";
+      const r = collect(geo.geometry.coordinates);
+      latCol = r.lats; lonCol = r.lons; eastingCol = r.eastings; northingCol = r.northings;
+      length = turf.length(geo, { units: "kilometers" }).toFixed(2);
+      pointCount = geo.geometry.coordinates.length;
+    } else if (geomType === "Polygon") {
+      count.area++; name = `مساحة ${count.area}`; type = "مساحة";
+      const r = collect(geo.geometry.coordinates[0]);
+      latCol = r.lats; lonCol = r.lons; eastingCol = r.eastings; northingCol = r.northings;
+      area = (turf.area(geo) / 1000000).toFixed(2);
+      pointCount = geo.geometry.coordinates[0].length;
+    }
+
+    csv += `${name},${type},"${latCol}","${lonCol}","${eastingCol}","${northingCol}",${zoneCol},${length},${area},${pointCount}\n`;
+  });
+
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "nearest-services.csv";
+  a.download = "my-drawings-UTM.csv";
   a.click();
+  alert("تم التصدير جغرافي + UTM ✅");
 });
+
+
 
 document.getElementById("clearBtn").addEventListener("click", () => {
   Object.values(layers).forEach((l) => l.clearLayers());
