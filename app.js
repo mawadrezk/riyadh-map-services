@@ -1,14 +1,27 @@
-// ==========================================
-// خدمات الرياض - نسخة حقيقية + محسنة
-// الداتا من ملفات GeoJSON اللي طلعت من QGIS
-// ==========================================
-
 // ===== 1. الخريطة =====
 const map = L.map("map").setView([24.7136, 46.6753], 11);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+
+// طبقة الخريطة العادية
+const osmLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
   attribution: "© OpenStreetMap",
-}).addTo(map);
+});
+
+const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+
+osmLayer.addTo(map);
+
+// زرار التبديل بين الطبقتين
+L.control.layers(
+  {
+    "🗺️ خريطة عادية": osmLayer,
+    "🛰️ قمر صناعي": satelliteLayer,
+  },
+  null,
+  { position: "bottomleft" }
+
+).addTo(map);
+
 
 // ===== 2. الطبقات والحالة =====
 const layers = {
