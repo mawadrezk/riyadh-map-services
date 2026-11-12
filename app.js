@@ -18,7 +18,7 @@ L.control.layers(
     "🛰️ قمر صناعي": satelliteLayer,
   },
   null,
-  { position: "bottomleft" }
+  { position: "topleft" }
 
 ).addTo(map);
 
